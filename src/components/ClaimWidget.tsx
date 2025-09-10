@@ -48,15 +48,16 @@ export default function ClaimWidget() {
         setErr(null);
         const url = `/api/alloc?user=${encodeURIComponent(userAddressFriendly)}`;
         const r = await fetch(url, { cache: "no-store" });
-        const j = await r.json();
+        const j = (await r.json()) as { raw: string };
         if (r.ok) {
           if (!stop) setAllocRaw(BigInt(j.raw));
         } else {
-          throw new Error(j?.error ?? "Failed to load allocation");
+          throw new Error((j as unknown as { error?: string })?.error ?? "Failed to load allocation");
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!stop) {
-          setErr(String(e?.message ?? e));
+          const message = e instanceof Error ? e.message : String(e);
+          setErr(message);
           setAllocRaw(0n);
         }
       }
@@ -98,10 +99,11 @@ export default function ClaimWidget() {
       await new Promise((r) => setTimeout(r, 2500));
       const url = `/api/alloc?user=${encodeURIComponent(userAddressFriendly)}`;
       const r = await fetch(url, { cache: "no-store" });
-      const j = await r.json();
+      const j = (await r.json()) as { raw: string };
       if (r.ok) setAllocRaw(BigInt(j.raw));
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      setErr(message);
     } finally {
       setIsLoading(false);
     }

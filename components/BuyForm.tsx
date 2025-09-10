@@ -75,9 +75,10 @@ export default function BuyForm() {
       alert("Запит на оплату відправлено в гаманець. Підтверди транзакцію.");
       setTonAmount("");
       setMagtAmount("0");
-    } catch (err: any) {
-      console.error("sendTransaction error:", err);
-      alert(err?.message || "Не вдалося надіслати транзакцію.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("sendTransaction error:", message);
+      alert(message || "Не вдалося надіслати транзакцію.");
     } finally {
       setSubmitting(false);
     }

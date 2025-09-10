@@ -5,7 +5,6 @@ import { beginCell } from "ton-core";
 import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
 
 const CLAIM_CONTRACT = process.env.NEXT_PUBLIC_CLAIM_ADDRESS!; // адреса ClaimManager (raw)
-const MAGT_DECIMALS = Number(process.env.NEXT_PUBLIC_MAGT_DECIMALS || "9");
 
 export default function ClaimButton() {
   const [tonConnectUI] = useTonConnectUI();
@@ -41,9 +40,10 @@ export default function ClaimButton() {
           },
         ],
       });
-    } catch (e: any) {
-      console.error("Claim tx error:", e);
-      alert(e?.message || "Не вдалося надіслати транзакцію Claim.");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error("Claim tx error:", message);
+      alert(message || "Не вдалося надіслати транзакцію Claim.");
     }
   };
 
