@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { beginCell } from "ton-core";
+import { Address, beginCell } from "ton-core";
 import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
 
-import { SALE_WALLET } from "../lib/config";
 import { currentLevelInfo, estimateMagtByTon } from "../lib/pricing";
 import { getBoundReferrerFor, readRefFromUrlOrStorage } from "../lib/ref";
+
+// ❗️ Тепер платимо на ClaimManager, а не на SALE_WALLET
+const CLAIM_ADDRESS = process.env.NEXT_PUBLIC_CLAIM_ADDRESS!;
+const OP_BUY = 0x42555931; // 'BUY1' як 32-бітний op-код (будь-який унікальний, але цей зафіксували)
 
 export default function BuyForm() {
   const [tonAmount, setTonAmount] = useState("");
@@ -17,7 +20,7 @@ export default function BuyForm() {
   const wallet = useTonWallet();
   const myAddress = useMemo(() => wallet?.account?.address || "", [wallet]);
 
-  // TODO: під’єднай реальний показник проданих токенів з бекенду / індексера
+  // TODO: під’єднати реальний soldSoFar з бекенду
   const soldSoFar = 0;
 
   useEffect(() => {
@@ -41,8 +44,8 @@ export default function BuyForm() {
   };
 
   const handleBuy = async () => {
-    if (!SALE_WALLET) {
-      alert("Не задано адресу одержувача TON (NEXT_PUBLIC_SALE_WALLET).");
+    if (!CLAIM_ADDRESS) {
+      alert("NEXT_PUBLIC_CLAIM_ADDRESS не заданий.");
       return;
     }
     const ton = parseFloat(tonAmount);
@@ -51,13 +54,20 @@ export default function BuyForm() {
       return;
     }
 
-    // реф у коментар: спочатку забінджений, інакше — з URL/LocalStorage
+    // 1) реферал (опційний): спочатку забінджений, інакше з URL/LocalStorage
     let ref = "";
     if (myAddress) ref = getBoundReferrerFor(myAddress);
     if (!ref) ref = readRefFromUrlOrStorage();
 
-    const comment = `MAGT presale${ref ? ` | ref=${ref}` : ""}`;
-    const payload = beginCell().storeUint(0, 32).storeStringTail(comment).endCell();
+    // 2) payload для контракту: OP_BUY + maybe(ref address)
+    //    Якщо реферала немає — кладемо null-адресу (maybe address)
+    const refAddr = ref ? Address.parse(ref) : null;
+    const payloadCell = beginCell()
+      .storeUint(OP_BUY, 32)
+      .storeAddress(refAddr) // maybe address
+      .endCell();
+
+    // 3) сума в nanoTON
     const nanoTon = BigInt(Math.round(ton * 1e9));
 
     try {
@@ -66,13 +76,16 @@ export default function BuyForm() {
         validUntil: Math.floor(Date.now() / 1000) + 300,
         messages: [
           {
-            address: SALE_WALLET,
+            address: CLAIM_ADDRESS,
             amount: nanoTon.toString(),
-            payload: payload.toBoc({ idx: false }).toString("base64"),
+            payload: payloadCell.toBoc({ idx: false }).toString("base64"),
           },
         ],
       });
-      alert("Запит на оплату відправлено в гаманець. Підтверди транзакцію.");
+
+      alert(
+        "Транзакцію відправлено. Контракт автоматично надішле MAGT на твій гаманець (як тільки отримає TON)."
+      );
       setTonAmount("");
       setMagtAmount("0");
     } catch (err: unknown) {
@@ -115,6 +128,10 @@ export default function BuyForm() {
       >
         {submitting ? "Відправляємо..." : "Купити"}
       </button>
+
+      <p className="text-xs opacity-80 mt-3">
+        Після оплати контракт <b>автоматично</b> відправить MAGT на твій гаманець.
+      </p>
     </div>
   );
 }
