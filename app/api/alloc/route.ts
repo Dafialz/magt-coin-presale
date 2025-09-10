@@ -1,5 +1,6 @@
 // app/api/alloc/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { TonClient } from "ton";
 import { getHttpEndpoint } from "@orbs-network/ton-access";
 import { Address, beginCell } from "ton-core";
@@ -25,7 +26,7 @@ const NETWORK = (process.env.NETWORK ?? "mainnet") as "mainnet" | "testnet";
 
 // простий humanizer для bigint → рядок з десятковою крапкою
 function humanize(units: bigint, decimals: number) {
-  const base = 10n ** BigInt(decimals);
+  const base = BigInt(10) ** BigInt(decimals);
   const int = units / base;
   const fracRaw = (units % base).toString().padStart(decimals, "0").replace(/0+$/, "");
   return fracRaw ? `${int}.${fracRaw}` : `${int}`;
@@ -91,10 +92,8 @@ export async function GET(req: NextRequest) {
         decimals: DECIMALS,
       },
     });
-  } catch (e: any) {
-    return NextResponse.json(
-      { error: String(e?.message ?? e) },
-      { status: 500 }
-    );
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
