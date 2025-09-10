@@ -13,6 +13,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="uk">
+      <head>
+        {/* Твій кастомний фавікон */}
+        <link rel="icon" href="/assets/favicon.png" type="image/png" />
+        <link rel="shortcut icon" href="/assets/favicon.png" />
+        <link rel="apple-touch-icon" href="/assets/favicon.png" />
+        <meta name="theme-color" content="#000000" />
+      </head>
       <body>
         <TonConnectUIProvider manifestUrl={MANIFEST_URL}>
           {children}
