@@ -1,0 +1,10 @@
+{
+  "projects": [
+    {
+      "name": "claim",
+      "path": "contracts",
+      "entrypoint": "ClaimManager.tact",
+      "output": "build"
+    }
+  ]
+}
